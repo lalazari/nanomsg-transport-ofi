@@ -23,12 +23,14 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include <stdlib.h>
 #include <hlapi.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
 //////////////////////////////////////////////////////////////////////////////////////////
+struct timespec t0, t1;
+int iterations = 10000;
 
 void help()
 {
@@ -37,10 +39,19 @@ void help()
 	printf("\n");
 }
 
+int64_t get_elapsed(const struct timespec *b, const struct timespec *a)
+{
+	int64_t elapsed;
+
+	elapsed = (a->tv_sec - b->tv_sec) * 1000 * 1000 * 1000;
+	elapsed += a->tv_nsec - b->tv_nsec;
+	return elapsed / 1000;  // microseconds
+}
+
 int main(int argc, char ** argv)
 {
 	int ret;
-
+	int i;
 	/* Validate arguments */
 	if (argc < 3) {
 		printf("ERROR: Too few arguments!\n");
@@ -48,6 +59,12 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
+	size_t msg_len;
+	char * data = malloc( MAX_MSG_SIZE );
+	if (data == NULL) {
+		printf("ERROR: Unable to allocate memory!\n");
+		return 255;
+	}
 	/* Create and initialize OFI structure */
 	struct ofi_resources ofi = {0};
 	ofi_alloc( &ofi, FI_EP_MSG );
@@ -77,29 +94,34 @@ int main(int argc, char ** argv)
 			return ret;
 
 		/* Setup memory region */
-		ret = ofi_active_ep_init_mr( &ofi, &ep, 1024, 1024 );
+		//ret = ofi_active_ep_init_mr( &ofi, &ep, 1024, 1024 );
 		if (ret)
 			return ret;
 
 		/* Receive data */
+		struct ofi_mr *mr;
+		ofi_mr_alloc( &ep, &mr ); 
+		ofi_mr_manage( &ep, mr, data, MAX_MSG_SIZE, 1, MR_SEND | MR_RECV );
+		
+
+		/* Receive data */
 		printf("Receiving data...");
-		ret = ofi_rx( &ep, MAX_MSG_SIZE, -1 );
-		if (ret) {
-			printf("Error sending message!\n");
-			return 1;
-		}
-		printf("'%s'\n", ep.rx_buf );
+		clock_gettime(CLOCK_MONOTONIC, &t0);
 
-		/* Send data */
-		printf("Sending data...");
-		sprintf( ep.tx_buf, "Hello World" );
-		ret = ofi_tx( &ep, 12, 1 );
-		if (ret) {
-			printf("Error sending message!\n");
-			return 1;
-		}
-		printf("OK\n");
+		for (i=0; i<iterations; i++) {
 
+			ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			if (ret) {
+				printf("Error sending message!\n");
+				return 1;
+			}
+			// start time measurement on first receive
+			
+		}	
+
+
+		clock_gettime(CLOCK_MONOTONIC, &t1);
+        printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
 
 	} else if (!strcmp(argv[1], "client")) {
 
@@ -114,28 +136,42 @@ int main(int argc, char ** argv)
 			return ret;
 
 		/* Setup memory region */
-		ret = ofi_active_ep_init_mr( &ofi, &ep, 1024, 1024 );
-		if (ret)
-			return ret;
+
+		//ret = ofi_active_ep_init_mr( &ofi, &ep, 1024, 1024 );
+		//if (ret)
+		//	return ret;
+		
+		struct ofi_mr *mr;
+		ofi_mr_alloc( &ep, &mr ); 
+		ofi_mr_manage( &ep, mr, data, MAX_MSG_SIZE, 1, MR_SEND | MR_RECV );
+
 
 		/* Send data */
+
 		printf("Sending data...");
-		sprintf( ep.tx_buf, "Hello World" );
-		ret = ofi_tx( &ep, 12, 1 );
-		if (ret) {
-			printf("Error sending message!\n");
-			return 1;
-		}
+		sprintf( data, "Hello World" );
+		clock_gettime(CLOCK_MONOTONIC, &t0);
+		for (i=0; i<iterations; i++) {
+			ret = ofi_tx_data( &ep, data, 12, fi_mr_desc( mr->mr ), 1 );
+			if (ret) {
+				printf("Error sending message!\n");
+				return 1;
+			}
+		}	
 		printf("OK\n");
 
+		clock_gettime(CLOCK_MONOTONIC, &t1);
+		printf("'%s' %d\n",data, i );
+		printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
+
 		/* Receive data */
-		printf("Receiving data...");
-		ret = ofi_rx( &ep, MAX_MSG_SIZE, 10 );
+		/*printf("Receiving data...");
+		ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
 		if (ret) {
 			printf("Error sending message!\n");
 			return 1;
 		}
-		printf("'%s'\n", ep.rx_buf );
+		printf("'%s'\n",data ); */
 
 	} else {
 		printf("ERROR: Unknown action! Second argument must be 'server' or 'client'\n");

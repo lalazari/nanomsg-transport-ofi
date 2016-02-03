@@ -32,6 +32,9 @@
 // Entry Point
 //////////////////////////////////////////////////////////////////////////////////////////
 
+struct timespec t0, t1;
+int iterations = 10000;
+
 void help()
 {
 	printf("Usage:   fab server <node> [<service>]\n");
@@ -39,9 +42,19 @@ void help()
 	printf("\n");
 }
 
+int64_t get_elapsed(const struct timespec *b, const struct timespec *a)
+{
+	int64_t elapsed;
+
+	elapsed = (a->tv_sec - b->tv_sec) * 1000 * 1000 * 1000;
+	elapsed += a->tv_nsec - b->tv_nsec;
+	return elapsed / 1000;  // microseconds
+}
+
 int main(int argc, char ** argv)
 {
 	int ret;
+	int i;
 
 	/* Validate arguments */
 	if (argc < 3) {
@@ -87,13 +100,21 @@ int main(int argc, char ** argv)
 
 		/* Receive data */
 		printf("Receiving data...");
-		ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
-		if (ret) {
-			printf("Error sending message!\n");
-			return 1;
-		}
-		printf("'%s'\n", data );
 
+		clock_gettime(CLOCK_MONOTONIC, &t0);
+
+		for (i=0; i<iterations; i++) {
+
+			ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			if (ret) {
+				printf("Error sending message!\n");
+				return 1;
+			}
+			printf("'%s'\n", data );
+
+		}	
+		clock_gettime(CLOCK_MONOTONIC, &t1);
+        printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
 
 	} else if (!strcmp(argv[1], "client")) {
 
@@ -117,12 +138,20 @@ int main(int argc, char ** argv)
 		/* Send data */
 		printf("Sending data...");
 		sprintf( data, "Hello World" );
-		ret = ofi_tx_data( &ep, data, 12, fi_mr_desc( mr->mr ), 1 );
-		if (ret) {
-			printf("Error sending message!\n");
-			return 1;
-		}
-		printf("OK\n");
+
+		clock_gettime(CLOCK_MONOTONIC, &t0);
+
+		for (i=0; i<iterations; i++) {
+			ret = ofi_tx_data( &ep, data, 12, fi_mr_desc( mr->mr ), 1 );
+			if (ret) {
+				printf("Error sending message!\n");
+				return 1;
+			}
+			printf("OK\n");
+		}	
+		clock_gettime(CLOCK_MONOTONIC, &t1);
+		printf("'%s' %d\n",data, i );
+		printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
 
 
 	} else {
