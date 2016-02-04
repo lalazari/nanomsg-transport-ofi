@@ -107,6 +107,7 @@ int main(int argc, char ** argv)
 		/* Receive data */
 		printf("Receiving data...");
 		clock_gettime(CLOCK_MONOTONIC, &t0);
+		int64_t temp_time=0;
 
 		for (i=0; i<iterations; i++) {
 
@@ -115,6 +116,17 @@ int main(int argc, char ** argv)
 				printf("Error sending message!\n");
 				return 1;
 			}
+ 
+			clock_gettime(CLOCK_MONOTONIC, &t1);
+
+			temp_time = get_elapsed(&t0, &t1)/i/2.0;
+			if(temp_time >=1000000){
+				printf("Bandwith %f Mbps \n", (i*MAX_MSG_SIZE)/temp_time;
+
+
+			}
+
+			
 			// start time measurement on first receive
 			
 		}	
