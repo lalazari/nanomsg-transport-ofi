@@ -1,3 +1,4 @@
+/backup
 /**
  * NanoMsg libFabric Transport - Shared Functions
  * Copyright (c) 2015 Ioannis Charalampidis
@@ -108,8 +109,9 @@ int main(int argc, char ** argv)
 		printf("Receiving data...");
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 		int64_t temp_time=0;
+		uint32_t bRecv = 0;
 
-		for (i=0; i<iterations; i++) {
+		for (;;) {
 
 			ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
 			if (ret) {
@@ -119,11 +121,12 @@ int main(int argc, char ** argv)
  
 			clock_gettime(CLOCK_MONOTONIC, &t1);
 
-			temp_time = get_elapsed(&t0, &t1)/i/2.0;
+			bRecv += msg_len;
+			temp_time = get_elapsed(&t0, &t1);
 			if(temp_time >=1000000){
-				printf("Bandwith %f Mbps \n", (i*MAX_MSG_SIZE)/temp_time;
-
-
+				printf("Bandwith %f Mbps \n", bRecv);
+				clock_gettime(CLOCK_MONOTONIC, &t0);
+				bRecv = 0;			
 			}
 
 			
@@ -133,7 +136,7 @@ int main(int argc, char ** argv)
 
 
 		clock_gettime(CLOCK_MONOTONIC, &t1);
-        printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
+	        printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1));
 
 	} else if (!strcmp(argv[1], "client")) {
 
@@ -163,10 +166,10 @@ int main(int argc, char ** argv)
 		printf("Sending data...");
 		sprintf( data, "Hello World" );
 		clock_gettime(CLOCK_MONOTONIC, &t0);
-		for (i=0; i<iterations; i++) {
-			ret = ofi_tx_data( &ep, data, 12, fi_mr_desc( mr->mr ), 1 );
+		for (;;) {
+			ret = ofi_tx_data( &ep, data, 10240, fi_mr_desc( mr->mr ), 1 );
 			if (ret) {
-				printf("Error sending message!\n");
+				printf("Error sending message! (code=%i)\n", ret);
 				return 1;
 			}
 		}	
