@@ -28,6 +28,9 @@
 
 #include <hlapi.h>
 
+ #define snd_data_size 1073741824
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +80,7 @@ int main(int argc, char ** argv)
 
 	/* Allocate a data pointer */
 	size_t msg_len;
-	char * data = malloc( MAX_MSG_SIZE );
+	char * data = malloc( snd_data_size );
 	if (data == NULL) {
 		printf("ERROR: Unable to allocate memory!\n");
 		return 255;
@@ -96,25 +99,41 @@ int main(int argc, char ** argv)
 		/* Manage this memory region */
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, MAX_MSG_SIZE, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, snd_data_size, 1, MR_SEND | MR_RECV );
 
 		/* Receive data */
 		printf("Receiving data...");
 
 		clock_gettime(CLOCK_MONOTONIC, &t0);
+		int64_t temp_time=0;
+		uint32_t bRecv = 0;
 
-		for (i=0; i<iterations; i++) {
+		for (;;) {
 
-			ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			ret = ofi_rx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
 			}
-			printf("'%s'\n", data );
+
+			clock_gettime(CLOCK_MONOTONIC, &t1);
+
+			bRecv += msg_len;
+			//if(msg_len>0){
+			//	printf("msg_LLLength %zu \n ", msg_len);
+			//}
+			temp_time = get_elapsed(&t0, &t1);
+			if(temp_time >=1000000){
+				printf("Bandwith %zu Mbps \n", bRecv/temp_time);
+				clock_gettime(CLOCK_MONOTONIC, &t0);
+				bRecv = 0;			
+			}
+
+			//printf("'%s'\n", data );
 
 		}	
 		clock_gettime(CLOCK_MONOTONIC, &t1);
-        printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
+	    printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1));
 
 	} else if (!strcmp(argv[1], "client")) {
 
@@ -133,7 +152,7 @@ int main(int argc, char ** argv)
 		/* Manage this memory region */
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, MAX_MSG_SIZE, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, snd_data_size, 1, MR_SEND | MR_RECV );
 
 		/* Send data */
 		printf("Sending data...");
@@ -141,7 +160,7 @@ int main(int argc, char ** argv)
 
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 
-		for (i=0; i<iterations; i++) {
+		for (;;) {
 			ret = ofi_tx_data( &ep, data, 12, fi_mr_desc( mr->mr ), 1 );
 			if (ret) {
 				printf("Error sending message!\n");
@@ -152,7 +171,6 @@ int main(int argc, char ** argv)
 		clock_gettime(CLOCK_MONOTONIC, &t1);
 		printf("'%s' %d\n",data, i );
 		printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
-
 
 	} else {
 		printf("ERROR: Unknown action! Second argument must be 'server' or 'client'\n");

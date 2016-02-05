@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <hlapi.h>
-
+#define snd_data_size 1073741824
 //////////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@ int main(int argc, char ** argv)
 	}
 
 	size_t msg_len;
-	char * data = malloc( 10240 );
+	char * data = malloc( snd_data_size );
 	if (data == NULL) {
 		printf("ERROR: Unable to allocate memory!\n");
 		return 255;
@@ -101,7 +101,7 @@ int main(int argc, char ** argv)
 		/* Receive data */
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, 10240, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, snd_data_size, 1, MR_SEND | MR_RECV );
 		
 
 		/* Receive data */
@@ -112,7 +112,7 @@ int main(int argc, char ** argv)
 
 		for (;;) {
 
-			ret = ofi_rx_data( &ep, data, 10240, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			ret = ofi_rx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
@@ -160,7 +160,7 @@ int main(int argc, char ** argv)
 		
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, 10240, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, snd_data_size, 1, MR_SEND | MR_RECV );
 
 
 		/* Send data */
@@ -169,7 +169,7 @@ int main(int argc, char ** argv)
 		sprintf( data, "Hello World" );
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 		for (;;) {
-			ret = ofi_tx_data( &ep, data, 10240, fi_mr_desc( mr->mr ), 1 );
+			ret = ofi_tx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), 1 );
 			if (ret) {
 				printf("Error sending message! (code=%i)\n", ret);
 				return 1;
