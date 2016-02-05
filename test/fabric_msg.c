@@ -1,4 +1,3 @@
-/backup
 /**
  * NanoMsg libFabric Transport - Shared Functions
  * Copyright (c) 2015 Ioannis Charalampidis
@@ -61,7 +60,7 @@ int main(int argc, char ** argv)
 	}
 
 	size_t msg_len;
-	char * data = malloc( MAX_MSG_SIZE );
+	char * data = malloc( 10240 );
 	if (data == NULL) {
 		printf("ERROR: Unable to allocate memory!\n");
 		return 255;
@@ -102,7 +101,7 @@ int main(int argc, char ** argv)
 		/* Receive data */
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, MAX_MSG_SIZE, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, 10240, 1, MR_SEND | MR_RECV );
 		
 
 		/* Receive data */
@@ -113,7 +112,7 @@ int main(int argc, char ** argv)
 
 		for (;;) {
 
-			ret = ofi_rx_data( &ep, data, MAX_MSG_SIZE, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			ret = ofi_rx_data( &ep, data, 10240, fi_mr_desc( mr->mr ), &msg_len, -1 );
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
@@ -122,9 +121,12 @@ int main(int argc, char ** argv)
 			clock_gettime(CLOCK_MONOTONIC, &t1);
 
 			bRecv += msg_len;
+			//if(msg_len>0){
+			//	printf("msg_LLLength %zu \n ", msg_len);
+			//}
 			temp_time = get_elapsed(&t0, &t1);
 			if(temp_time >=1000000){
-				printf("Bandwith %f Mbps \n", bRecv);
+				printf("Bandwith %zu Mbps \n", bRecv/temp_time);
 				clock_gettime(CLOCK_MONOTONIC, &t0);
 				bRecv = 0;			
 			}
@@ -158,7 +160,7 @@ int main(int argc, char ** argv)
 		
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, MAX_MSG_SIZE, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, 10240, 1, MR_SEND | MR_RECV );
 
 
 		/* Send data */
