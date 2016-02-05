@@ -175,7 +175,6 @@ int main(int argc, char ** argv)
 				return 1;
 			}
 		}	
-		printf("OK\n");
 
 		clock_gettime(CLOCK_MONOTONIC, &t1);
 		printf("'%s' %d\n",data, i );
