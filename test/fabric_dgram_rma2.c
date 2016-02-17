@@ -112,8 +112,8 @@ int main(int argc, char ** argv)
 
 		for (;;) {
 
-			ret = ofi_rx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
-			printf("Got %lu bytes\n", msg_len);
+			ret = ofi_rx_data_rma( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			//printf("Got %lu bytes\n", msg_len);
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
@@ -122,9 +122,7 @@ int main(int argc, char ** argv)
 			clock_gettime(CLOCK_MONOTONIC, &t1);
 
 			bRecv += msg_len;
-			if(msg_len>0){
-				printf("msg_LLLength %zu \n ", msg_len);
-			}
+
 			temp_time = get_elapsed(&t0, &t1);
 			if(temp_time >=1000000){
 				printf("Bandwith %zu Mbps \n", bRecv/temp_time);
@@ -164,7 +162,7 @@ int main(int argc, char ** argv)
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 
 		for (;;) {
-			ret = ofi_tx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), 1 );
+			ret = ofi_tx_data_rma( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), 1 );
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
