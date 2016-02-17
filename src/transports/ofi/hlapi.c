@@ -98,7 +98,10 @@
 
 #define MAX(a,b) ((a>b) ? a : b)
 
+#define FT_MR_KEY 0xC0DE
 
+
+struct fid_cq *txcq, *rxcq;	
 //////////////////////////////////////////////////////////////////////////////////////////
 // OFI Helper Functions
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1439,5 +1442,99 @@ int ofi_free_ep( struct ofi_active_endpoint * ep )
 	FT_CLOSE_FID( ep->domain );
 
 	/* Success */
+	return 0;
+}
+ssize_t ofi_tx_data_rma ( struct ofi_active_endpoint * EP, void * buf, const size_t tx_size, 
+		void *desc, int timeout )
+{
+	ssize_t ret;
+
+	/* Send data */
+	// ret = fi_sendmsg(EP->ep, msg_iov, msg_iov_desc, iov_count, EP->remote_fi_addr, &EP->tx_ctx );
+	//ret = fi_send(EP->ep, buf, tx_size, desc, EP->remote_fi_addr, &EP->tx_ctx);
+	ret= fi_write(EP->ep, buf, tx_size, desc, EP->remote_fi_addr, 0, FT_MR_KEY, &EP->tx_ctx);
+	if (ret) {
+
+		/* If we are in a bad state, we were remotely disconnected */
+		if (ret == -FI_EOPBADSTATE) {
+			_ofi_debug("OFI: HLAPI: ofi_tx_msg() returned -FI_EOPBADSTATE, considering shutdown.\n");
+			return -FI_REMOTE_DISCONNECT;			
+		}
+
+		/* Otherwise display error */
+		FT_PRINTERR("ofi_tx_msg", ret);
+		return ret;
+	}
+
+	/* Wait for Tx CQ event (when 'the buffer can be reused' - INJECT_COMPLETE) */
+	ret = ft_wait_shutdown_aware(EP->tx_cq, EP->eq, timeout, NULL);
+	if (ret) {
+
+		/* Be silent on known errors */
+		if ((ret == -FI_REMOTE_DISCONNECT) || (ret == -FI_ENODATA))
+			return ret;
+
+		/* Otherwise display error */
+		FT_PRINTERR("ft_wait<tx_cq>", ret);
+		return ret;
+	}
+
+	/* Success */
+	return 0;
+
+}
+
+ssize_t ofi_rx_data_rma( struct ofi_active_endpoint * EP, void * buf, const size_t max_size, 
+		void *desc, size_t * rx_size, int timeout )
+{
+	int ret;
+	struct fi_cq_data_entry cq_entry;
+
+	/* Receive data */
+	//ret = fi_recv(EP->ep, buf, max_size, desc, EP->remote_fi_addr, &EP->rx_ctx);
+
+	/*if (ret) {
+
+		/* If we are in a bad state, we were remotely disconnected */
+	/*	if (ret == -FI_EOPBADSTATE) {
+			_ofi_debug("OFI: HLAPI: ofi_rx() returned %i, considering shutdown.\n", ret);
+			return -FI_REMOTE_DISCONNECT;
+		}
+
+		/* Otherwise display error */
+	/*	FT_PRINTERR("ofi_rx_data", ret);
+		return ret;
+	} */
+
+	/* Wait for Rx CQ */
+	ret = ft_wait(EP->rx_cq);	
+	if (ret) {
+
+		/* Be silent on known errors */
+		if ((ret == -FI_REMOTE_DISCONNECT) || (ret == -FI_ENODATA))
+			return ret;
+
+		/* Otherwise display error */
+		FT_PRINTERR("ft_wait<rx_cq>", ret);
+		return ret;
+	}
+
+	ret = ft_wait_shutdown_aware(EP->rx_cq, EP->eq, timeout, &cq_entry);
+	if (ret) {
+
+		/* Be silent on known errors */
+		if ((ret == -FI_REMOTE_DISCONNECT) || (ret == -FI_ENODATA))
+			return ret;
+
+		/* Otherwise display error */
+		FT_PRINTERR("ft_wait<rx_cq>", ret);
+		return ret;
+	}
+
+	/* Update size pointer if specified */
+	if (rx_size != NULL)
+		*rx_size = cq_entry.len;
+
+	/* Return 0 */
 	return 0;
 }

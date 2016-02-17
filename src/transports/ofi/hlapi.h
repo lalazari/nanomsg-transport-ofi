@@ -33,6 +33,7 @@
 #include <rdma/fi_errno.h>
 #include <rdma/fi_endpoint.h>
 #include <rdma/fi_cm.h>
+#include <rdma/fi_rma.h>
 
 /* Maximum buffer size to allocate */
 #define MAX_MSG_SIZE 		1024
@@ -164,6 +165,11 @@ ssize_t ofi_rx_data( struct ofi_active_endpoint * EP, void * buf, const size_t m
 ssize_t ofi_tx_data( struct ofi_active_endpoint * EP, void * buf, const size_t tx_size, 
 		void *desc, int timeout );
 
+ssize_t ofi_tx_data_rma ( struct ofi_active_endpoint * EP, void * buf, const size_t tx_size, 
+		void *desc, int timeout );
+
+ssize_t ofi_rx_data_rma( struct ofi_active_endpoint * EP, void * buf, const size_t max_size, 
+		void *desc, size_t * rx_size, int timeout );
 /**
  * Post/Poll receive version
  */

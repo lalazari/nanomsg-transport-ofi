@@ -5,7 +5,7 @@ NANOMSG_LIB_DIR=/usr/local/lib
 
 .PHONY: all
 
-all: test_msg test_dgram
+all: test_msg test_dgram test_dgram_rma2
 #test_msg_timed	
 
 # We only need the high-level API from the ofi transport
@@ -15,6 +15,9 @@ hlapi.o: $(OFI_DIR)/hlapi.c
 # Core Tests
 test_dgram: hlapi.o fabric_dgram.c
 	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_dgram.c -lfabric -pthread -g -o test_dgram
+
+test_dgram_rma2: hlapi.o fabric_dgram_rma2.c
+	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_dgram_rma2.c -lfabric -pthread -g -o test_dgram_rma2	
 
 test_msg: hlapi.o fabric_msg.c
 	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_msg.c -lfabric -g -o test_msg
@@ -37,6 +40,7 @@ clean:
 		test_msg_timed \
 		test_msg_timed.dSYM \
 		test_nanmsg_timing \
+		test_dgram_rma2 \
 		test_nanmsg_timing.dSYM
 
 # Tests
