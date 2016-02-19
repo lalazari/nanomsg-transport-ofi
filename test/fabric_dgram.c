@@ -29,7 +29,7 @@
 #include <hlapi.h>
 
 //#define snd_data_size 1073741824
-#define snd_data_size 8000
+//#define snd_data_size 8000
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -59,6 +59,9 @@ int main(int argc, char ** argv)
 {
 	int ret;
 	int i;
+
+	long snd_data_size = strtol(argv[4], NULL, 0);
+	printf(" %ld = \n", snd_data_size);
 
 	/* Validate arguments */
 	if (argc < 3) {
@@ -108,11 +111,13 @@ int main(int argc, char ** argv)
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 		int64_t temp_time=0;
 		uint32_t bRecv = 0;
+		float sum_bandwith=0;
+		float av_bandwith=0;
 
-		for (;;) {
+		for (int i=0; i<200; i++) {
 
 			ret = ofi_rx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
-			printf("Got %lu bytes\n", msg_len);
+			
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
@@ -121,21 +126,22 @@ int main(int argc, char ** argv)
 			clock_gettime(CLOCK_MONOTONIC, &t1);
 
 			bRecv += msg_len;
-			if(msg_len>0){
-				printf("msg_LLLength %zu \n ", msg_len);
-			}
+			
 			temp_time = get_elapsed(&t0, &t1);
 			if(temp_time >=1000000){
 				printf("Bandwith %zu Mbps \n", bRecv/temp_time);
 				clock_gettime(CLOCK_MONOTONIC, &t0);
 				bRecv = 0;			
 			}
-
+			sum_bandwith = av_bandwith + bRecv/temp_time;
 			//printf("'%s'\n", data );
 
 		}	
 		clock_gettime(CLOCK_MONOTONIC, &t1);
 	    printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1));
+
+	    av_bandwith = sum_bandwith / 1000;
+		printf("Average Bandwith = %.3f \n", av_bandwith);
 
 	} else if (!strcmp(argv[1], "client")) {
 
@@ -162,7 +168,7 @@ int main(int argc, char ** argv)
 
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 
-		for (;;) {
+		for (int i=0; i<200; i++) {
 			ret = ofi_tx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), 1 );
 			if (ret) {
 				printf("Error sending message!\n");
