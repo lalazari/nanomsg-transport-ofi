@@ -60,7 +60,8 @@ int main(int argc, char ** argv)
 	int ret;
 	int i;
 
-	long snd_data_size = strtol(argv[4], NULL, 0);
+	printf("1.%s 2.%s 3.%s 4.%s", argv[1], argv[2], argv[3], argv[4] );
+	long snd_data_size = strtol(argv[3], NULL, 0);
 	printf(" %ld = \n", snd_data_size);
 
 	/* Validate arguments */
