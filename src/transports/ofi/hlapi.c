@@ -850,19 +850,6 @@ int ofi_open_active_ep( struct ofi_resources * R, struct ofi_active_endpoint * E
 	FT_EP_BIND(EP->ep, EP->tx_cq, FI_TRANSMIT);
 	FT_EP_BIND(EP->ep, EP->rx_cq, FI_RECV);
 
-	int flags = !EP->tx_cq ? FI_SEND : 0;
-	if (R->hints->caps & (FI_WRITE | FI_READ))
-		flags |= R->hints->caps & (FI_WRITE | FI_READ);
-	else if (R->hints->caps & FI_RMA)
-		flags |= FI_WRITE | FI_READ;
-	FT_EP_BIND(EP->ep, EP->tx_cq, flags);
-	flags = !rxcq ? FI_RECV : 0;
-	if (R->hints->caps & (FI_REMOTE_WRITE | FI_REMOTE_READ))
-		flags |= R->hints->caps & (FI_REMOTE_WRITE | FI_REMOTE_READ);
-	else if (R->hints->caps & FI_RMA)
-		flags |= FI_REMOTE_WRITE | FI_REMOTE_READ;
-	FT_EP_BIND(EP->ep, EP->rx_cq, flags);
-
 	/* ==== Open Address Vector ================== */
 
 	/* Open Address Vector */
