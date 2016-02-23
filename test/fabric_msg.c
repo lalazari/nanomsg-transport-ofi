@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <hlapi.h>
-#define snd_data_size 1073741824
+//#define snd_data_size 1073741824
 //////////////////////////////////////////////////////////////////////////////////////////
 // Entry Point
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +52,8 @@ int main(int argc, char ** argv)
 {
 	int ret;
 	int i;
+
+	long snd_data_size = strtol(argv[3], NULL, 0);
 	/* Validate arguments */
 	if (argc < 3) {
 		printf("ERROR: Too few arguments!\n");
@@ -72,7 +74,7 @@ int main(int argc, char ** argv)
 	/* Get port if specified */
 	const char * node = argv[2]; 
 	const char * service = "5125";
-	if (argc >= 4) service = argv[3];
+	//if (argc >= 4) service = argv[3];
 
 	/* Setup OFI resources */
 	if (!strcmp(argv[1], "server")) {

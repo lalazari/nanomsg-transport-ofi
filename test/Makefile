@@ -23,7 +23,7 @@ test_msg: hlapi.o fabric_msg.c
 	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_msg.c -lfabric -g -o test_msg
 
 test_msg_rma: hlapi.o fabric_msg_rma.c
-	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_msg_rma.c -lfabric -g -o test_msg	
+	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_msg_rma.c -lfabric -g -o test_msg_rma
 
 #test_msg_timed: hlapi.o fabric_msg.c
 #	gcc -std=gnu99 -D__STANDALONE_TESTS -I$(OFI_DIR) hlapi.o fabric_msg_timed.c -lfabric -g -o test_msg_timed

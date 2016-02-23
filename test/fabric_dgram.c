@@ -26,6 +26,7 @@
 #include <string.h>
 #include <pthread.h>
 
+#define OFI_DEBUG_LOG
 #include <hlapi.h>
 
 //#define snd_data_size 1073741824
@@ -58,11 +59,12 @@ int64_t get_elapsed(const struct timespec *b, const struct timespec *a)
 int main(int argc, char ** argv)
 {
 	int ret;
-	int i;
+	//int i;
 
-	printf("1.%s 2.%s 3.%s 4.%s", argv[1], argv[2], argv[3], argv[4] );
+	//printf("1.%s 2.%s 3.%s 4.%s", argv[1], argv[2], argv[3], argv[4] );
 	long snd_data_size = strtol(argv[3], NULL, 0);
-	printf(" %ld = \n", snd_data_size);
+	long double_snd_data_size = strtol(argv[4], NULL, 0);
+	printf("I/O Buffer size = %ld\n", snd_data_size);
 
 	/* Validate arguments */
 	if (argc < 3) {
@@ -73,7 +75,7 @@ int main(int argc, char ** argv)
 
 	/* Create and initialize OFI structure */
 	struct ofi_resources ofi = {0};
-	ofi_alloc( &ofi, FI_EP_DGRAM );
+	ofi_alloc( &ofi, FI_EP_RDM );
 
 	/* Active endoint */
 	struct ofi_active_endpoint ep = {0};
@@ -81,11 +83,11 @@ int main(int argc, char ** argv)
 	/* Get port if specified */
 	const char * node = argv[2]; 
 	const char * service = "5125";
-	if (argc >= 4) service = argv[3];
+	//if (argc >= 4) service = argv[3];
 
 	/* Allocate a data pointer */
 	size_t msg_len;
-	char * data = malloc( snd_data_size );
+	char * data = malloc( double_snd_data_size );
 	if (data == NULL) {
 		printf("ERROR: Unable to allocate memory!\n");
 		return 255;
@@ -104,7 +106,7 @@ int main(int argc, char ** argv)
 		/* Manage this memory region */
 		struct ofi_mr *mr;
 		ofi_mr_alloc( &ep, &mr ); 
-		ofi_mr_manage( &ep, mr, data, snd_data_size, 1, MR_SEND | MR_RECV );
+		ofi_mr_manage( &ep, mr, data, double_snd_data_size, 1, MR_SEND | MR_RECV );
 
 		/* Receive data */
 		printf("Receiving data...");
@@ -115,9 +117,10 @@ int main(int argc, char ** argv)
 		float sum_bandwith=0;
 		float av_bandwith=0;
 
-		for (int i=0; i<200; i++) {
+		//for (int i=0; i<10000; i++) {
+		for (;;) {
 
-			ret = ofi_rx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			ret = ofi_rx_data( &ep, data, double_snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
 			
 			if (ret) {
 				printf("Error sending message!\n");
@@ -141,7 +144,7 @@ int main(int argc, char ** argv)
 		clock_gettime(CLOCK_MONOTONIC, &t1);
 	    printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1));
 
-	    av_bandwith = sum_bandwith / 1000;
+	    av_bandwith = sum_bandwith / 10000;
 		printf("Average Bandwith = %.3f \n", av_bandwith);
 
 	} else if (!strcmp(argv[1], "client")) {
@@ -169,17 +172,19 @@ int main(int argc, char ** argv)
 
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 
-		for (int i=0; i<200; i++) {
+		//for (int i=0; i<10000; i++) {
+		for (;;) {
 			ret = ofi_tx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), 1 );
 			if (ret) {
 				printf("Error sending message!\n");
+				printf("ret = %d \n", ret);
 				return 1;
 			}
-			//printf("OK\n");
 		}	
+		printf("OK\n");
 		clock_gettime(CLOCK_MONOTONIC, &t1);
-		printf("'%s' %d\n",data, i );
-		printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
+		//printf("'%s'i =  %d\n",data, i );
+		//printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1)/i/2.0);
 
 	} else {
 		printf("ERROR: Unknown action! Second argument must be 'server' or 'client'\n");
