@@ -113,15 +113,18 @@ int main(int argc, char ** argv)
 
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 		int64_t temp_time=0;
-		uint32_t bRecv = 0;
-		float sum_bandwith=0;
+		//uint64_t bRecv = 0;
+		long long bRecv = 0;
+		float bandwith=0;
 		float av_bandwith=0;
+		int i=0;		
 
 		//for (int i=0; i<10000; i++) {
 		for (;;) {
 
 			ret = ofi_rx_data( &ep, data, double_snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
-			
+			i++;
+
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
@@ -130,21 +133,37 @@ int main(int argc, char ** argv)
 			clock_gettime(CLOCK_MONOTONIC, &t1);
 
 			bRecv += msg_len;
+			if(msg_len != snd_data_size){
+				printf("**********WARNING : %d != %d\n", msg_len, snd_data_size);
+				//return 1;
+			}
+			//printf("i received : %d \n", msg_len);
+			//printf("I = %d", i);
+			//printf("\n TOTAL bytes Received = %lli \n", bRecv);			
 			
 			temp_time = get_elapsed(&t0, &t1);
-			if(temp_time >=1000000){
-				printf("Bandwith %zu Mbps \n", bRecv/temp_time);
+
+			if(temp_time >=10000000){
+				
+				bandwith = (double)(bRecv*8)/(temp_time*1000);
+				printf("-----Total Bytes received in las 10sec : %lli \n", bRecv);
+				printf("-----In Totas Packets : %d \n", i);
+				printf("-------->Bandwith %lf Mbps \n", bandwith);
 				clock_gettime(CLOCK_MONOTONIC, &t0);
-				bRecv = 0;			
+				bRecv = 0;
+				i=0;
+				bandwith = 0;
 			}
-			sum_bandwith = av_bandwith + bRecv/temp_time;
+			//sum_bandwith = sum_bandwith + bRecv/temp_time;
+			//av_bandwith = ((av_bandwith + bRecv/temp_time)*8)/i;
+			//printf("AVERAGE BANDIWTH = %f" , av_bandwith);
 			//printf("'%s'\n", data );
 
 		}	
 		clock_gettime(CLOCK_MONOTONIC, &t1);
 	    printf("time per message: %8.2f us\n", get_elapsed(&t0, &t1));
 
-	    av_bandwith = sum_bandwith / 10000;
+	    //av_bandwith = sum_bandwith / 10000;
 		printf("Average Bandwith = %.3f \n", av_bandwith);
 
 	} else if (!strcmp(argv[1], "client")) {
@@ -171,15 +190,19 @@ int main(int argc, char ** argv)
 		sprintf( data, "Hello World" );
 
 		clock_gettime(CLOCK_MONOTONIC, &t0);
-
+		int i=0;
+		
 		//for (int i=0; i<10000; i++) {
 		for (;;) {
 			ret = ofi_tx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), 1 );
+			i++;
 			if (ret) {
 				printf("Error sending message!\n");
 				printf("ret = %d \n", ret);
 				return 1;
 			}
+			printf("\n Number of Packets %d \n", i);
+			
 		}	
 		printf("OK\n");
 		clock_gettime(CLOCK_MONOTONIC, &t1);
