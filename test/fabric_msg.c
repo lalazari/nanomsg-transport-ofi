@@ -107,14 +107,20 @@ int main(int argc, char ** argv)
 		
 
 		/* Receive data */
+
+		long long bRecv = 0;
+		float bandwith=0;
+		float av_bandwith=0;
+		int i=0;
 		printf("Receiving data...");
 		clock_gettime(CLOCK_MONOTONIC, &t0);
 		int64_t temp_time=0;
-		uint32_t bRecv = 0;
+		
 
 		for (;;) {
 
 			ret = ofi_rx_data( &ep, data, snd_data_size, fi_mr_desc( mr->mr ), &msg_len, -1 );
+			i++;
 			if (ret) {
 				printf("Error sending message!\n");
 				return 1;
@@ -123,20 +129,33 @@ int main(int argc, char ** argv)
 			clock_gettime(CLOCK_MONOTONIC, &t1);
 
 			bRecv += msg_len;
-			//if(msg_len>0){
-			//	printf("msg_LLLength %zu \n ", msg_len);
-			//}
+			if(msg_len != snd_data_size){
+				printf("**********WARNING : %d != %d\n", msg_len, snd_data_size);
+			
+			}
+			
 			temp_time = get_elapsed(&t0, &t1);
-			if(temp_time >=1000000){
-				printf("Bandwith %zu Mbps \n", bRecv/temp_time);
+			
+			if(temp_time >=10000000){
+				//printf("Bandwith %zu Mbps \n", bRecv/temp_time);
+				//clock_gettime(CLOCK_MONOTONIC, &t0);
+				//bRecv = 0;
+
+
+				bandwith = (double)(bRecv*8)/(temp_time*1000);
+				printf("-----Total Bytes received in las 10sec : %lli \n", bRecv);
+				printf("-----In Totas Packets : %d \n", i);
+				printf("-------->Bandwith %lf Mbps \n", bandwith);
 				clock_gettime(CLOCK_MONOTONIC, &t0);
-				bRecv = 0;			
+				bRecv = 0;
+				i=0;
+				bandwith = 0;			
 			}
 
 			
 			// start time measurement on first receive
 			
-		}	
+		}
 
 
 		clock_gettime(CLOCK_MONOTONIC, &t1);
